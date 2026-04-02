@@ -1,3 +1,4 @@
+/* ── Reset & Global ── */
 * {
   margin: 0;
   padding: 0;
@@ -9,5 +10,79 @@ body,
 #root {
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  font-family: "Outfit", system-ui, -apple-system, sans-serif;
+  background: #0a0a0a;
+  color: #e0ddd5;
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Let pages scroll when needed */
+#root {
+  overflow-y: auto;
+}
+
+/* ── Shared form styling (used by Auth + Edit) ── */
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  color: #8a8780;
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #111111;
+  border: 1px solid #2a2a28;
+  border-radius: 6px;
+  color: #e0ddd5;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: #c9a84c;
+}
+
+input, select, button, textarea {
+  font-family: "Outfit", sans-serif;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a28;
+  border-radius: 3px;
+}
+::placeholder{
+  font-family: "Outfit", system-ui, -apple-system, sans-serif;
+}
+

@@ -1,23 +1,45 @@
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-function Box(props) {
-  return (
-    <mesh {...props}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="orange" />
-    </mesh>
-  );
-}
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import HomePage from "./pages/HomePage";
+import AvailabilityPage from "./pages/AvailabilityPage";
+import EditPage from "./pages/EditPage";
+import CardDetailPage from "./pages/CardDetailPage";
+import AddCardPage from "./pages/AddCardPage";
+import HistoryPage from "./pages/HistoryPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 export default function App() {
   return (
-    <Canvas camera={{ position: [3, 3, 3], fov: 50 }}>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={1} />
-      <Box position={[0, 0.5, 0]} />
-      <gridHelper args={[10, 10]} />
-      <OrbitControls />
-    </Canvas>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          {/* Protected routes — wrapped in shared Layout (navbar) */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<HomePage />} />
+            <Route path="/availability" element={<AvailabilityPage />} />
+            <Route path="/edit" element={<EditPage />} />
+            <Route path="/edit/card/:cardId" element={<CardDetailPage />} />
+            <Route path="/edit/add-card" element={<AddCardPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/admin" element={<AdminDashboardPage />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
