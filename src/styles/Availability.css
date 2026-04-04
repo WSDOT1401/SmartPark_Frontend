@@ -1,0 +1,183 @@
+.availability-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px - 48px);
+}
+
+/* ── Selector bar ── */
+.selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.selector-bar label {
+  color: #8a8780;
+  font-size: 0.85rem;
+}
+
+.selector-bar select {
+  padding: 8px 12px;
+  background: #111111;
+  border: 1px solid #2a2a28;
+  border-radius: 6px;
+  color: #e0ddd5;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.selector-bar select:focus {
+  border-color: #c9a84c;
+}
+
+.mall-lot-badge {
+  font-size: 0.75rem;
+  color: #c9a84c;
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+/* ── Issuer chips ── */
+.issuer-chips {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.issuer-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #111111;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.issuer-chip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.issuer-chip-label {
+  color: #e0ddd5;
+  font-weight: 500;
+}
+
+.issuer-chip-count {
+  color: #6b6960;
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
+
+/* ── 3D viewer wrapper ── */
+.viewer-wrapper {
+  position: relative;
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #1e1e1c;
+  background: #0a0a0a;
+}
+
+/* ── Stats overlay (top-right) ── */
+.stats-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(14, 14, 14, 0.92);
+  backdrop-filter: blur(8px);
+  padding: 16px 20px;
+  border-radius: 10px;
+  border: 1px solid #1e1e1c;
+  z-index: 10;
+  min-width: 180px;
+}
+
+.stats-overlay h4 {
+  color: #c9a84c;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.stat-row .stat-label {
+  color: #6b6960;
+  font-size: 0.85rem;
+}
+
+.stat-row .stat-value {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.stat-row .stat-value.available {
+  color: #5cb85c;
+}
+
+.stat-row .stat-value.occupied {
+  color: #d9534f;
+}
+
+.stat-row .stat-value.total {
+  color: #f0ece2;
+}
+
+/* ── Legend (dynamic per issuer) ── */
+.legend {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  gap: 20px;
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.legend-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(14, 14, 14, 0.88);
+  backdrop-filter: blur(6px);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #1e1e1c;
+}
+
+.legend-provider {
+  color: #e0ddd5;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #8a8780;
+  font-size: 0.75rem;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
