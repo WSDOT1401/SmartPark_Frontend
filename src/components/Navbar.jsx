@@ -1,16 +1,10 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Car, LogOut } from "lucide-react";
+import { Car, User } from "lucide-react";
 import "../styles/Navbar.css";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const { user } = useAuth();
 
   return (
     <nav className="navbar">
@@ -22,17 +16,17 @@ export default function Navbar() {
         <li><NavLink to="/">Home</NavLink></li>
         <li><NavLink to="/availability">Availability</NavLink></li>
         <li><NavLink to="/history">History</NavLink></li>
-        <li><NavLink to="/edit">Edit Profile</NavLink></li>
+        <li><NavLink to="/edit">My Cards</NavLink></li>
         {user?.role === "admin" && (
           <li><NavLink to="/admin">Dashboard</NavLink></li>
         )}
       </ul>
 
       <div className="navbar-user">
-        <span>{user?.name}</span>
-        <button className="btn-logout" onClick={handleLogout}>
-          <LogOut size={14} /> Logout
-        </button>
+        <NavLink to="/profile" className="navbar-username">
+          <User size={14} />
+          <span>{user?.name}</span>
+        </NavLink>
       </div>
     </nav>
   );

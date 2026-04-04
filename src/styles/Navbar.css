@@ -155,6 +155,33 @@
   color: rgba(255, 255, 255, 0.45);
 }
 
+.navbar-username {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition:
+    color 0.25s var(--ease-out-quart),
+    background-color 0.25s var(--ease-out-quart);
+}
+
+.navbar-username span {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.navbar-username:hover {
+  color: #c9a84c;
+  background-color: rgba(201, 168, 76, 0.06);
+}
+
+.navbar-username.active {
+  color: #c9a84c;
+}
+
 .btn-logout {
   display: inline-flex;
   align-items: center;

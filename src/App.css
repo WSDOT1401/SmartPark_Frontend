@@ -65,7 +65,7 @@ body,
   border-color: #c9a84c;
 }
 
-input, select, button, textarea {
+input, select, button, textarea, option {
   font-family: "Outfit", sans-serif;
 }
 

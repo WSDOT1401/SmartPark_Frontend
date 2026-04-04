@@ -12,6 +12,7 @@ import CardDetailPage from "./pages/CardDetailPage";
 import AddCardPage from "./pages/AddCardPage";
 import HistoryPage from "./pages/HistoryPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/edit/card/:cardId" element={<CardDetailPage />} />
             <Route path="/edit/add-card" element={<AddCardPage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
           </Route>
         </Routes>
