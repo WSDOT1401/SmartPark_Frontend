@@ -1,0 +1,233 @@
+.home-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Header row ── */
+.home-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #1e1e1c;
+}
+
+.home-page h2 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 2rem;
+  color: #f0ece2;
+  margin-bottom: 4px;
+}
+
+.home-subtitle {
+  color: #5a5850;
+  font-size: 0.85rem;
+}
+
+.home-subtitle strong {
+  color: #8a8780;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.home-quick-stats {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.quick-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #141414;
+  border: 1px solid #1e1e1c;
+  border-radius: 10px;
+  padding: 12px 18px;
+  color: #c9a84c;
+}
+
+.quick-stat div {
+  display: flex;
+  flex-direction: column;
+}
+
+.quick-stat .qs-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f0ece2;
+  line-height: 1;
+}
+
+.quick-stat .qs-label {
+  font-size: 0.7rem;
+  color: #5a5850;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Two-column grid ── */
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 40px;
+}
+
+.home-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8a8780;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+/* ── Card stack ── */
+.cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-item {
+  background: #141414;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #1e1e1c;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.card-item .brand {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #c9a84c;
+  font-weight: 600;
+}
+
+.family-badge {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(201, 168, 76, 0.08);
+  color: #8a8780;
+  letter-spacing: 0.3px;
+}
+
+.card-item .last_four {
+  color: #f0ece2;
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+  font-family: monospace;
+  letter-spacing: 2px;
+}
+
+.card-item .label {
+  color: #5a5850;
+  font-size: 0.8rem;
+}
+
+/* ── Malls grid ── */
+.malls-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.mall-chip {
+  background: #111111;
+  border: 1px solid #1e1e1c;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.mall-chip .mall-name {
+  color: #f0ece2;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.mall-chip .mall-address {
+  color: #5a5850;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.mall-chip .family-tag {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(201, 168, 76, 0.08);
+  color: #c9a84c;
+}
+
+/* ── Quick action cards ── */
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #141414;
+  border: 1px solid #1e1e1c;
+  border-radius: 10px;
+  padding: 20px 24px;
+  text-decoration: none;
+  color: #c9a84c;
+  transition: border-color 0.25s cubic-bezier(0.25, 1, 0.5, 1),
+              transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.action-card:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+  transform: translateY(-2px);
+}
+
+.action-card div {
+  display: flex;
+  flex-direction: column;
+}
+
+.action-title {
+  color: #f0ece2;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.action-desc {
+  color: #5a5850;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .home-header {
+    flex-direction: column;
+  }
+
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-actions {
+    grid-template-columns: 1fr;
+  }
+}
