@@ -86,9 +86,14 @@ export function AuthProvider({ children }) {
     setUser((prev) => (prev ? { ...prev, vehicles } : prev));
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    const profile = await api("/api/users/profile");
+    setUser((prev) => (prev ? { ...prev, ...profile } : prev));
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refreshCards, refreshVehicles }}
+      value={{ user, loading, login, register, logout, refreshCards, refreshVehicles, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
