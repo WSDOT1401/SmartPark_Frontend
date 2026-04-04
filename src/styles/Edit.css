@@ -1,0 +1,458 @@
+/* ═══════ Edit / Card pages ═══════ */
+
+.edit-page {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.edit-page h2 {
+  font-family: "Playfair Display", Georgia, serif;
+  color: #f0ece2;
+  margin-bottom: 8px;
+}
+
+.edit-subtitle {
+  color: #8a8780;
+  font-size: 0.9rem;
+  margin-bottom: 28px;
+}
+
+/* ── Back button ── */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #8a8780;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  transition: color 0.2s;
+}
+.btn-back:hover {
+  color: #c9a84c;
+}
+
+/* ── Card list (EditPage) ── */
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.card-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #141414;
+  border: 1px solid #1e1e1c;
+  border-radius: 10px;
+  padding: 18px 20px;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.card-list-item:hover {
+  border-color: #c9a84c;
+  transform: translateY(-2px);
+}
+
+.card-list-icon {
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+.card-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-list-brand {
+  color: #f0ece2;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.card-list-label {
+  color: #8a8780;
+  font-size: 0.82rem;
+}
+
+.card-list-vehicles {
+  color: #6b6960;
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.card-list-arrow {
+  color: #5a5850;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+.card-list-item:hover .card-list-arrow {
+  color: #c9a84c;
+}
+
+/* ── Add card button (bottom of list) ── */
+.btn-add-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1px dashed #3a3a38;
+  border-radius: 10px;
+  color: #8a8780;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-add-card:hover {
+  border-color: #c9a84c;
+  color: #c9a84c;
+}
+
+/* ── Card detail header ── */
+.card-detail-header {
+  margin-bottom: 24px;
+}
+.card-detail-label {
+  color: #8a8780;
+  font-size: 0.85rem;
+  display: block;
+}
+.card-detail-program {
+  color: #c9a84c;
+  font-size: 0.8rem;
+  display: block;
+  margin-top: 4px;
+}
+
+/* ── Shared section ── */
+.edit-section {
+  background: #141414;
+  border-radius: 10px;
+  padding: 24px;
+  border: 1px solid #1e1e1c;
+  margin-bottom: 24px;
+}
+
+.edit-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c9a84c;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
+}
+
+/* ── Vehicles on CardDetailPage ── */
+.vehicle-block {
+  background: #1a1a18;
+  border-radius: 10px;
+  border: 1px solid #1e1e1c;
+  border-left: 3px solid #c9a84c;
+  padding: 20px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.vehicle-block:hover {
+  border-color: #c9a84c;
+  box-shadow: 0 2px 12px rgba(201, 168, 76, 0.08);
+}
+.vehicle-block:last-of-type {
+  margin-bottom: 14px;
+}
+
+.vehicle-block--new {
+  background: #1a1a18;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 14px;
+  border: 1px dashed #3a3a38;
+  border-left: 3px dashed #c9a84c;
+}
+
+.vehicle-block-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.vehicle-id-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.12);
+  color: #c9a84c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.vehicle-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vehicle-plate {
+  color: #f0ece2;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.vehicle-meta {
+  color: #6b6960;
+  font-size: 0.78rem;
+}
+
+.btn-remove {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #6b6960;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-remove:hover {
+  color: #d9534f;
+  background: rgba(217, 83, 79, 0.1);
+}
+
+.vehicle-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.vehicle-add-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.empty-state {
+  color: #6b6960;
+  font-size: 0.88rem;
+  padding: 12px 0;
+}
+
+/* ── Stepper (AddCardPage) ── */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.stepper-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #5a5850;
+  font-size: 0.82rem;
+}
+
+.stepper-step.active {
+  color: #c9a84c;
+}
+.stepper-step.done {
+  color: #5cb85c;
+}
+
+.stepper-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid #3a3a38;
+  flex-shrink: 0;
+}
+
+.stepper-step.active .stepper-dot {
+  border-color: #c9a84c;
+  background: rgba(201, 168, 76, 0.12);
+  color: #c9a84c;
+}
+.stepper-step.done .stepper-dot {
+  border-color: #5cb85c;
+  background: rgba(92, 184, 92, 0.12);
+  color: #5cb85c;
+}
+
+.stepper-step + .stepper-step::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: #3a3a38;
+  margin-right: 8px;
+}
+
+/* ── Form row (side-by-side) ── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Issuer badge ── */
+.issuer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: #1a1a18;
+  border: 1px solid #c9a84c;
+  border-radius: 8px;
+  color: #f0ece2;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* ── Privileges list ── */
+.privileges-intro {
+  color: #a09d93;
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+}
+
+.privilege-group {
+  margin-bottom: 16px;
+}
+
+.privilege-family {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f0ece2;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.privilege-malls {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0 26px;
+}
+
+.privilege-malls li {
+  position: relative;
+  padding: 3px 0 3px 14px;
+  color: #8a8780;
+  font-size: 0.85rem;
+}
+
+.privilege-malls li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #c9a84c;
+}
+
+/* ── Step navigation ── */
+.step-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+/* ── Buttons ── */
+.btn-save {
+  padding: 10px 24px;
+  background: #c9a84c;
+  color: #0a0a0a;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-save:hover {
+  background: #b8963f;
+}
+
+.btn-save.btn-small {
+  padding: 8px 18px;
+  font-size: 0.85rem;
+}
+
+.btn-cancel {
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid #3a3a38;
+  color: #8a8780;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-cancel:hover {
+  border-color: #8a8780;
+  color: #f0ece2;
+}
+
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px dashed #3a3a38;
+  color: #8a8780;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-top: 12px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-add:hover {
+  border-color: #c9a84c;
+  color: #c9a84c;
+}
+.btn-add:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #3a3a38;
+  color: #8a8780;
+}
+
+.vehicle-count-badge {
+  font-size: 0.75rem;
+  background: rgba(201, 168, 76, 0.15);
+  color: #c9a84c;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .vehicle-fields,
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .stepper-step span {
+    display: none;
+  }
+}
