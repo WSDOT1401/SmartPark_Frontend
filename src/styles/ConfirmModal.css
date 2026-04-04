@@ -1,0 +1,113 @@
+/* ── Confirm Modal ── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  animation: confirmFadeIn 0.2s ease-out;
+}
+
+@keyframes confirmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes confirmSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.confirm-card {
+  background: #1a1a18;
+  border: 1px solid #2a2a28;
+  border-radius: 14px;
+  padding: 32px 28px 24px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: confirmSlideUp 0.25s ease-out;
+}
+
+.confirm-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.confirm-card--danger .confirm-icon {
+  background: rgba(217, 83, 79, 0.12);
+  color: #d9534f;
+}
+
+.confirm-card--warning .confirm-icon {
+  background: rgba(201, 168, 76, 0.12);
+  color: #c9a84c;
+}
+
+.confirm-title {
+  font-family: "Playfair Display", Georgia, serif;
+  color: #f0ece2;
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  color: #8a8780;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: "Outfit", sans-serif;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.confirm-btn:active {
+  transform: scale(0.97);
+}
+
+.confirm-btn--cancel {
+  background: #2a2a28;
+  color: #a09d93;
+}
+.confirm-btn--cancel:hover {
+  background: #333330;
+}
+
+.confirm-btn--danger {
+  background: #d9534f;
+  color: #fff;
+}
+.confirm-btn--danger:hover {
+  background: #c9433f;
+}
+
+.confirm-btn--warning {
+  background: #c9a84c;
+  color: #0a0a0a;
+}
+.confirm-btn--warning:hover {
+  background: #b8963f;
+}
