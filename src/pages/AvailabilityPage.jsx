@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Text } from "@react-three/drei";
+import { OrbitControls, Text, useGLTF } from "@react-three/drei";
 import { api } from "../services/api";
 import { connectSocket } from "../services/socket";
 import "../styles/Availability.css";
@@ -57,6 +57,82 @@ function Ground() {
   );
 }
 
+const ROAD_GAP = 1; // must match AdminParkingCreatorPage
+
+/* ── Road patch using road.glb model ── */
+function RoadPatch({ position, scaleX, scaleZ, horizontal }) {
+  const { scene } = useGLTF("/road.glb");
+  const clone = useMemo(() => scene.clone(), [scene]);
+  return (
+    <primitive
+      object={clone}
+      position={position}
+      rotation={horizontal ? [0, Math.PI / 2, 0] : [0, 0, 0]}
+      scale={[scaleX, 1, scaleZ]}
+    />
+  );
+}
+
+/* ── Detect road segments from coordinate gaps between adjacent spots ── */
+function detectRoadSegments(parsed) {
+  // Parse slot_id to get grid row/col: "A1" → row=0, col=0
+  const withGrid = parsed.map((s) => {
+    const id = s.slot_id || "";
+    const letter = id.match(/^([A-Z])/i);
+    const num = id.match(/(\d+)$/);
+    return {
+      ...s,
+      gridRow: letter ? letter[1].toUpperCase().charCodeAt(0) - 65 : 0,
+      gridCol: num ? parseInt(num[1], 10) - 1 : 0,
+    };
+  });
+
+  // Build lookup: "row,col" → spot
+  const lookup = {};
+  withGrid.forEach((s) => {
+    lookup[`${s.gridRow},${s.gridCol}`] = s;
+  });
+
+  const segments = [];
+
+  withGrid.forEach((s) => {
+    const { gridRow: r, gridCol: c } = s;
+    const { x, y } = s.location_coordinates;
+
+    // Check right neighbour (same row, next column)
+    const right = lookup[`${r},${c + 1}`];
+    if (right) {
+      const dx = right.location_coordinates.x - x;
+      if (dx > 1) {
+        segments.push({
+          cx: (x + right.location_coordinates.x) / 2,
+          cy: y,
+          w: dx * 0.85,
+          d: 1.2,
+          horizontal: false,
+        });
+      }
+    }
+
+    // Check bottom neighbour (next row, same column)
+    const below = lookup[`${r + 1},${c}`];
+    if (below) {
+      const dy = below.location_coordinates.y - y;
+      if (dy > 1) {
+        segments.push({
+          cx: x,
+          cy: (y + below.location_coordinates.y) / 2,
+          w: 1.2,
+          d: dy * 0.85,
+          horizontal: true,
+        });
+      }
+    }
+  });
+
+  return segments;
+}
+
 /* ── 3D scene — renders spots from multiple lots with per-issuer colours ── */
 function ParkingLotScene({ spotGroups }) {
   const allSpots = spotGroups.flatMap((g) =>
@@ -83,11 +159,29 @@ function ParkingLotScene({ spotGroups }) {
   const spacing = 1.2;
   const spacing_row = 2;
 
+  const roadSegments = detectRoadSegments(parsed);
+
   return (
     <>
       <ambientLight intensity={0.6} />
       <directionalLight position={[10, 15, 10]} intensity={0.8} />
       <Ground />
+
+      {/* Roads */}
+      {roadSegments.map((seg, i) => (
+        <RoadPatch
+          key={`road-${i}`}
+          position={[
+            (seg.cx - cx) / 10 * scale,
+            0,
+            (seg.cy - cy) / 10 * scale,
+          ]}
+          scaleX={seg.w * scale * 0.1}
+          scaleZ={seg.d * scale * 0.1}
+          horizontal={seg.horizontal}
+        />
+      ))}
+
       {parsed.map((spot) => {
         const { x, y } = spot.location_coordinates;
         return (
