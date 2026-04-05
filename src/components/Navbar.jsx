@@ -13,12 +13,20 @@ export default function Navbar() {
       </NavLink>
 
       <ul className="navbar-links">
-        <li><NavLink to="/">Home</NavLink></li>
-        <li><NavLink to="/availability">Availability</NavLink></li>
-        <li><NavLink to="/history">History</NavLink></li>
-        <li><NavLink to="/edit">My Cards</NavLink></li>
-        {user?.role === "admin" && (
-          <li><NavLink to="/admin">Dashboard</NavLink></li>
+        {user?.role === "USER" && (
+            <>
+            <li><NavLink to="/">Home</NavLink></li>
+            <li><NavLink to="/availability">Availability</NavLink></li>
+            <li><NavLink to="/history">History</NavLink></li>
+            <li><NavLink to="/edit">My Cards</NavLink></li>
+            </>
+        )}
+        {user?.role === "ADMIN" && (
+          <>
+            <li><NavLink to="/admin">Dashboard</NavLink></li>
+            <li><NavLink to="/admin/parking">Parking</NavLink></li>
+            <li><NavLink to="/admin/parking-creator">Lot Creator</NavLink></li>
+          </>
         )}
       </ul>
 

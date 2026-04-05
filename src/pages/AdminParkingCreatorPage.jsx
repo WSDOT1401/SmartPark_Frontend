@@ -235,6 +235,7 @@ export default function AdminParkingCreatorPage() {
     api("/api/parking/lots").then((data) => {
       if (!data) return;
       const mallMap = {};
+      const progMap = {};
       data.forEach((lot) => {
         const name =
           lot.mall_name ||
@@ -247,17 +248,24 @@ export default function AdminParkingCreatorPage() {
           (lot.mall && typeof lot.mall === "object" ? lot.mall.mall_id : null) ||
           name;
         if (name && id) mallMap[id] = name;
+
+        // Derive programs from lot data
+        const prog = lot.program || lot.privilege_program;
+        if (prog && prog.program_id) {
+          progMap[prog.program_id] = prog;
+        }
       });
       setMalls(Object.entries(mallMap).map(([id, name]) => ({ id, name })));
+      if (Object.keys(progMap).length) setPrograms(Object.values(progMap));
     });
 
+    // Also try dedicated programs endpoint
     api("/api/admin/programs")
-      .then((data) => setPrograms(data || []))
-      .catch(() => {
-        api("/api/parking/programs")
-          .then((data) => setPrograms(data || []))
-          .catch(() => setPrograms([]));
-      });
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : data?.programs || data?.data || [];
+        if (arr.length) setPrograms(arr);
+      })
+      .catch(() => {});
   }, []);
 
   /* ── Road toggle ── */
@@ -380,28 +388,21 @@ export default function AdminParkingCreatorPage() {
     setFeedback(null);
 
     try {
-      const lot = await api("/api/admin/lots", {
-        method: "POST",
-        body: {
-          lot_name: lotName.trim(),
-          mall_id: selectedMall,
-          program_id: selectedProgram,
-        },
-      });
-
-      const lotId = lot.lot_id || lot.id;
-
-      // Coordinates include road gaps so the client renders natural spacing
+      const prefix = lotName.trim().replace(/\s+/g, "-").substring(0, 20);
       const slotPayload = worldSlots.map((s) => ({
-        slot_id: s.label,
-        location_coordinates: { x: s.wx, y: s.wy, z: 0 },
+        slot_id: `${prefix}_${s.label}`,
+        location_coordinates: JSON.stringify({ x: s.wx, y: s.wy, z: 0 }),
         rotation: s.rotation,
-        is_active: true,
       }));
 
-      await api(`/api/admin/lots/${lotId}/slots`, {
+      await api("/api/admin/lots", {
         method: "POST",
-        body: { slots: slotPayload },
+        body: {
+          name: lotName.trim(),
+          mall_id: selectedMall,
+          program_id: selectedProgram,
+          slots: slotPayload,
+        },
       });
 
       setFeedback({ type: "success", msg: `Lot "${lotName}" created with ${slots.length} slots.` });

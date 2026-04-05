@@ -19,7 +19,7 @@ function getIssuerColors(index) {
 }
 
 /* ── Single parking spot mesh ── */
-function ParkingSpot({ position, status, label, active, issuerColors }) {
+function ParkingSpot({ position, rotation, status, label, active, issuerColors }) {
   const palette = issuerColors || ISSUER_PALETTE[0];
   const color = !active
     ? "#555"
@@ -28,7 +28,7 @@ function ParkingSpot({ position, status, label, active, issuerColors }) {
     : palette.free;
 
   return (
-    <group position={position}>
+    <group position={position} rotation={[0, (rotation || 0) * Math.PI / 180, 0]}>
       <mesh position={[0, 0.05, 0]}>
         <boxGeometry args={[0.8, 0.1, 1.6]} />
         <meshStandardMaterial color={color} />
@@ -80,7 +80,8 @@ function ParkingLotScene({ spotGroups }) {
   const maxY = Math.max(...coords.map((c) => c.y));
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
-  const scale = 1.2;
+  const spacing = 1.2;
+  const spacing_row = 2;
 
   return (
     <>
@@ -92,10 +93,11 @@ function ParkingLotScene({ spotGroups }) {
         return (
           <ParkingSpot
             key={`${spot.lot_id}-${spot.slot_id}`}
-            position={[(x - cx) / 10 * scale, 0, (y - cy) / 10 * scale]}
+            position={[(x - cx) * spacing, 0, (y - cy) * spacing_row]}
+            rotation={spot.rotation}
             status={spot.status}
             active={spot.is_active}
-            label={spot.slot_id}
+            // label={spot.slot_id}
             issuerColors={spot.issuerColors}
           />
         );
@@ -113,6 +115,7 @@ function ParkingLotScene({ spotGroups }) {
 export default function AvailabilityPage() {
   const [lots, setLots] = useState([]);
   const [selectedMall, setSelectedMall] = useState("");
+  const [selectedLotId, setSelectedLotId] = useState("");
   const [spotsByLot, setSpotsByLot] = useState({});
 
   /* Fetch all parking lots on mount */
@@ -153,6 +156,12 @@ export default function AvailabilityPage() {
 
   /* Lots belonging to the selected mall */
   const mallLots = useMemo(() => malls[selectedMall] || [], [malls, selectedMall]);
+
+  /* Auto-select first lot when mall changes */
+  useEffect(() => {
+    if (mallLots.length) setSelectedLotId(mallLots[0].lot_id);
+    else setSelectedLotId("");
+  }, [mallLots]);
 
   /* Map each issuer/provider to a unique colour */
   const issuerColorMap = useMemo(() => {
@@ -207,9 +216,12 @@ export default function AvailabilityPage() {
     };
   }, [mallLots]);
 
-  /* Build spot groups with issuer colours for the 3D scene */
+  /* Build spot groups with issuer colours — filtered to selected lot */
   const spotGroups = useMemo(() => {
-    return mallLots.map((lot) => {
+    const filtered = selectedLotId
+      ? mallLots.filter((l) => l.lot_id === selectedLotId)
+      : mallLots;
+    return filtered.map((lot) => {
       const provider =
         lot.provider_name ||
         (lot.program && lot.program.provider_name) ||
@@ -222,7 +234,7 @@ export default function AvailabilityPage() {
         spots: (spotsByLot[lot.lot_id] || []).filter((s) => s.is_active),
       };
     });
-  }, [mallLots, spotsByLot, issuerColorMap]);
+  }, [mallLots, spotsByLot, issuerColorMap, selectedLotId]);
 
   /* Aggregate stats */
   const allSpots = spotGroups.flatMap((g) => g.spots);
@@ -247,40 +259,21 @@ export default function AvailabilityPage() {
         </select>
 
         {mallLots.length > 1 && (
-          <span className="mall-lot-badge">
-            {mallLots.length} privileged parkings
-          </span>
+          <>
+            <label>Select parking:</label>
+            <select
+              value={selectedLotId}
+              onChange={(e) => setSelectedLotId(e.target.value)}
+            >
+              {mallLots.map((lot) => (
+                <option key={lot.lot_id} value={lot.lot_id}>
+                  {getLotName(lot)}
+                </option>
+              ))}
+            </select>
+          </>
         )}
       </div>
-
-      {/* ── Issuer chips (one per lot/provider) ── */}
-      {mallLots.length > 0 && (
-        <div className="issuer-chips">
-          {spotGroups.map((g) => {
-            const freeCount = g.spots.filter(
-              (s) => s.status !== "OCCUPIED"
-            ).length;
-            return (
-              <div
-                key={g.lot.lot_id}
-                className="issuer-chip"
-                style={{ borderColor: g.issuerColors?.free }}
-              >
-                <span
-                  className="issuer-chip-dot"
-                  style={{ background: g.issuerColors?.free }}
-                />
-                <span className="issuer-chip-label">
-                  {g.provider} — {getLotName(g.lot)}
-                </span>
-                <span className="issuer-chip-count">
-                  {freeCount}/{g.spots.length} free
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* ── 3D viewer ── */}
       <div className="viewer-wrapper">

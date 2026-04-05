@@ -12,6 +12,8 @@ import CardDetailPage from "./pages/CardDetailPage";
 import AddCardPage from "./pages/AddCardPage";
 import HistoryPage from "./pages/HistoryPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminParkingCreatorPage from "./pages/AdminParkingCreatorPage";
+import AdminParkingPage from "./pages/AdminParkingPage";
 import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
@@ -39,6 +41,8 @@ export default function App() {
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/parking" element={<AdminParkingPage />} />
+            <Route path="/admin/parking-creator" element={<AdminParkingCreatorPage />} />
           </Route>
         </Routes>
       </AuthProvider>
