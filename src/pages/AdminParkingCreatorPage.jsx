@@ -41,37 +41,50 @@ function PreviewSpot({ position, rotation, label }) {
   );
 }
 
-function PreviewRoadPatch({ position, width, depth, horizontal }) {
+function PreviewRoadPatch({ position, width, depth, horizontal, connections }) {
+  const LINE_COLOR = "#d4a017";
+  const LINE_Y = 0.006;
+  const LINE_THICK = 0.04;
+
+  const lines = [];
+
+  if (connections) {
+    // Intersection patch — draw line segments for each connected direction
+    const hw = width / 2;
+    const hd = depth / 2;
+    // Each arm goes from center to that edge
+    if (connections.top)    lines.push({ pos: [0, LINE_Y, -hd / 2], w: LINE_THICK, d: hd });
+    if (connections.bottom) lines.push({ pos: [0, LINE_Y, hd / 2],  w: LINE_THICK, d: hd });
+    if (connections.left)   lines.push({ pos: [-hw / 2, LINE_Y, 0], w: hw, d: LINE_THICK });
+    if (connections.right)  lines.push({ pos: [hw / 2, LINE_Y, 0],  w: hw, d: LINE_THICK });
+  } else {
+    // Straight road — dashed center line
+    const isH = horizontal;
+    const len = isH ? width : depth;
+    const dashLen = len * 0.15;
+    const gap = len / 3;
+    for (let i = 0; i < 3; i++) {
+      const offset = (i - 1) * gap;
+      lines.push({
+        pos: isH ? [offset, LINE_Y, 0] : [0, LINE_Y, offset],
+        w: isH ? dashLen : LINE_THICK,
+        d: isH ? LINE_THICK : dashLen,
+      });
+    }
+  }
+
   return (
     <group position={position}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
         <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color="#1a1a18" />
+        <meshStandardMaterial color="#2a2a2a" />
       </mesh>
-      {/* Dashed center line */}
-      {Array.from({ length: 3 }, (_, i) => {
-        const isHorizontal = horizontal;
-        const len = isHorizontal ? width : depth;
-        const dashLen = len * 0.15;
-        const gap = len / 3;
-        const offset = (i - 1) * gap;
-        return (
-          <mesh
-            key={i}
-            rotation={[-Math.PI / 2, 0, 0]}
-            position={
-              isHorizontal
-                ? [offset, 0.006, 0]
-                : [0, 0.006, offset]
-            }
-          >
-            <planeGeometry
-              args={isHorizontal ? [dashLen, 0.04] : [0.04, dashLen]}
-            />
-            <meshStandardMaterial color="#444" />
-          </mesh>
-        );
-      })}
+      {lines.map((l, i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={l.pos}>
+          <planeGeometry args={[l.w, l.d]} />
+          <meshStandardMaterial color={LINE_COLOR} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -111,6 +124,7 @@ function PreviewScene({ slots, roadSegments }) {
           width={seg.w * spacing}
           depth={seg.d * spacing_row}
           horizontal={seg.horizontal}
+          connections={seg.connections}
         />
       ))}
 
@@ -356,25 +370,64 @@ export default function AdminParkingCreatorPage() {
   /* Road segments for 3D preview — individual patches between two spots */
   const roadSegments = useMemo(() => {
     const segs = [];
+
     roads.forEach((key) => {
       const [type, coords] = key.split(":");
       const [r, c] = coords.split(",").map(Number);
       if (type === "h") {
-        // Gap between columns — road runs parallel to spots (along Z)
         const x1 = getWX(r, c);
         const x2 = getWX(r, c + 1);
         const y = getWY(r, c);
         segs.push({ cx: (x1 + x2) / 2, cy: y, w: (x2 - x1) * 0.85, d: 1.2, horizontal: false });
       } else {
-        // Gap between rows — road runs perpendicular to spots (along X)
         const x = getWX(r, c);
         const y1 = getWY(r, c);
         const y2 = getWY(r + 1, c);
         segs.push({ cx: x, cy: (y1 + y2) / 2, w: 1.2, d: (y2 - y1) * 0.85, horizontal: true });
       }
     });
+
+    // Detect intersections at every corner between 4 cells (r,c), (r,c+1), (r+1,c), (r+1,c+1).
+    // A corner has an intersection when roads exist on BOTH axes touching it.
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        const hTop = roads.has(`h:${r},${c}`);       // col-road on top row
+        const hBot = roads.has(`h:${r + 1},${c}`);   // col-road on bottom row
+        const vLeft = roads.has(`v:${r},${c}`);       // row-road on left col
+        const vRight = roads.has(`v:${r},${c + 1}`);  // row-road on right col
+
+        const hasColumnRoad = hTop || hBot;
+        const hasRowRoad = vLeft || vRight;
+        if (hasColumnRoad && hasRowRoad) {
+          const refRow = hTop ? r : r + 1;
+          const refCol = vLeft ? c : c + 1;
+          const ix = (getWX(refRow, c) + getWX(refRow, c + 1)) / 2;
+          const iy = (getWY(r, refCol) + getWY(r + 1, refCol)) / 2;
+          // Connections: which directions does this intersection connect to?
+          // top = v-road above (v:r-1,c or v:r-1,c+1) OR h-road on top row
+          // bottom = v-road below (v:r+1,c or v:r+1,c+1) OR h-road on bottom row  
+          // left = h-road on left (h:r,c-1 or h:r+1,c-1) OR v-road on left col
+          // right = h-road on right (h:r,c+1 or h:r+1,c+1) OR v-road on right col
+          // Simplified: each direction connects if the adjacent road on that side exists
+          segs.push({
+            cx: ix,
+            cy: iy,
+            w: 1.2,
+            d: 1.2,
+            horizontal: true,
+            connections: {
+              top: vLeft || vRight,    // road goes upward (negative Z in 3D)
+              bottom: vLeft || vRight, // road goes downward  
+              left: hTop || hBot,      // road goes left (negative X)
+              right: hTop || hBot,     // road goes right
+            },
+          });
+        }
+      }
+    }
+
     return segs;
-  }, [roads, getWX, getWY]);
+  }, [roads, rows, cols, getWX, getWY]);
 
   /* ── Save to backend ── */
   const handleSave = async () => {
@@ -395,6 +448,16 @@ export default function AdminParkingCreatorPage() {
         rotation: s.rotation,
       }));
 
+      // Build road payload from computed roadSegments
+      const roadPayload = roadSegments.map((seg) => ({
+        cx: seg.cx,
+        cy: seg.cy,
+        w: seg.w,
+        d: seg.d,
+        horizontal: seg.horizontal,
+        connections: seg.connections || null,
+      }));
+
       await api("/api/admin/lots", {
         method: "POST",
         body: {
@@ -402,6 +465,7 @@ export default function AdminParkingCreatorPage() {
           mall_id: selectedMall,
           program_id: selectedProgram,
           slots: slotPayload,
+          roads: roadPayload,
         },
       });
 
