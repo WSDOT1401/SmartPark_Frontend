@@ -1,0 +1,36 @@
+.history-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.history-page h2 {
+  font-family: "Playfair Display", Georgia, serif;
+  color: #f0ece2;
+  margin-bottom: 24px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th {
+  text-align: left;
+  color: #6b6960;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1e1e1c;
+}
+
+.history-table td {
+  padding: 12px;
+  color: #a09d93;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #141414;
+}
+
+.history-table tr:hover td {
+  background: #111111;
+}
