@@ -246,40 +246,54 @@ export default function AdminParkingCreatorPage() {
 
   /* ── Fetch malls & programs on mount ── */
   useEffect(() => {
-    api("/api/parking/lots").then((data) => {
-      if (!data) return;
-      const mallMap = {};
-      const progMap = {};
-      data.forEach((lot) => {
-        const name =
-          lot.mall_name ||
-          (lot.mall && typeof lot.mall === "object"
-            ? lot.mall.mall_name || lot.mall.name
-            : lot.mall) ||
-          null;
-        const id =
-          lot.mall_id ||
-          (lot.mall && typeof lot.mall === "object" ? lot.mall.mall_id : null) ||
-          name;
-        if (name && id) mallMap[id] = name;
-
-        // Derive programs from lot data
-        const prog = lot.program || lot.privilege_program;
-        if (prog && prog.program_id) {
-          progMap[prog.program_id] = prog;
+    /* Primary: dedicated admin endpoints */
+    api("/api/admin/malls")
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : data?.malls || data?.data || [];
+        if (arr.length) {
+          setMalls(arr.map((m) => ({ id: m.mall_id || m.id, name: m.mall_name || m.name })));
         }
-      });
-      setMalls(Object.entries(mallMap).map(([id, name]) => ({ id, name })));
-      if (Object.keys(progMap).length) setPrograms(Object.values(progMap));
-    });
+      })
+      .catch(() => {});
 
-    // Also try dedicated programs endpoint
     api("/api/admin/programs")
       .then((data) => {
         const arr = Array.isArray(data) ? data : data?.programs || data?.data || [];
         if (arr.length) setPrograms(arr);
       })
       .catch(() => {});
+
+    /* Fallback: derive from lots if admin endpoints aren't available */
+    api("/api/parking/lots").then((data) => {
+      if (!data) return;
+      setMalls((prev) => {
+        if (prev.length) return prev; // admin endpoint already loaded
+        const mallMap = {};
+        data.forEach((lot) => {
+          const name =
+            lot.mall_name ||
+            (lot.mall && typeof lot.mall === "object"
+              ? lot.mall.mall_name || lot.mall.name
+              : lot.mall) ||
+            null;
+          const id =
+            lot.mall_id ||
+            (lot.mall && typeof lot.mall === "object" ? lot.mall.mall_id : null) ||
+            name;
+          if (name && id) mallMap[id] = name;
+        });
+        return Object.entries(mallMap).map(([id, name]) => ({ id, name }));
+      });
+      setPrograms((prev) => {
+        if (prev.length) return prev; // admin endpoint already loaded
+        const progMap = {};
+        data.forEach((lot) => {
+          const prog = lot.program || lot.privilege_program;
+          if (prog && prog.program_id) progMap[prog.program_id] = prog;
+        });
+        return Object.values(progMap);
+      });
+    });
   }, []);
 
   /* ── Road toggle ── */
