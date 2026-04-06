@@ -57,84 +57,56 @@ function Ground() {
   );
 }
 
-const ROAD_GAP = 1; // must match AdminParkingCreatorPage
+/* ── Road patch using Three.js geometry ── */
+function RoadPatch({ position, width, depth, horizontal, connections }) {
+  const LINE_COLOR = "#d4a017";
+  const LINE_Y = 0.006;
+  const LINE_THICK = 0.04;
 
-/* ── Road patch using road.glb model ── */
-function RoadPatch({ position, scaleX, scaleZ, horizontal }) {
-  const { scene } = useGLTF("/road.glb");
-  const clone = useMemo(() => scene.clone(), [scene]);
+  const lines = [];
+
+  if (connections) {
+    // Intersection patch — draw line segments for each connected direction
+    const hw = width / 2;
+    const hd = depth / 2;
+    if (connections.top)    lines.push({ pos: [0, LINE_Y, -hd / 2], w: LINE_THICK, d: hd });
+    if (connections.bottom) lines.push({ pos: [0, LINE_Y, hd / 2],  w: LINE_THICK, d: hd });
+    if (connections.left)   lines.push({ pos: [-hw / 2, LINE_Y, 0], w: hw, d: LINE_THICK });
+    if (connections.right)  lines.push({ pos: [hw / 2, LINE_Y, 0],  w: hw, d: LINE_THICK });
+  } else {
+    // Straight road — dashed center line
+    const isH = horizontal;
+    const len = isH ? width : depth;
+    const dashLen = len * 0.15;
+    const gap = len / 3;
+    for (let i = 0; i < 3; i++) {
+      const offset = (i - 1) * gap;
+      lines.push({
+        pos: isH ? [offset, LINE_Y, 0] : [0, LINE_Y, offset],
+        w: isH ? dashLen : LINE_THICK,
+        d: isH ? LINE_THICK : dashLen,
+      });
+    }
+  }
+
   return (
-    <primitive
-      object={clone}
-      position={position}
-      rotation={horizontal ? [0, Math.PI / 2, 0] : [0, 0, 0]}
-      scale={[scaleX, 1, scaleZ]}
-    />
+    <group position={position}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+        <planeGeometry args={[width, depth]} />
+        <meshStandardMaterial color="#2a2a2a" />
+      </mesh>
+      {lines.map((l, i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={l.pos}>
+          <planeGeometry args={[l.w, l.d]} />
+          <meshStandardMaterial color={LINE_COLOR} />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
-/* ── Detect road segments from coordinate gaps between adjacent spots ── */
-function detectRoadSegments(parsed) {
-  // Parse slot_id to get grid row/col: "A1" → row=0, col=0
-  const withGrid = parsed.map((s) => {
-    const id = s.slot_id || "";
-    const letter = id.match(/^([A-Z])/i);
-    const num = id.match(/(\d+)$/);
-    return {
-      ...s,
-      gridRow: letter ? letter[1].toUpperCase().charCodeAt(0) - 65 : 0,
-      gridCol: num ? parseInt(num[1], 10) - 1 : 0,
-    };
-  });
-
-  // Build lookup: "row,col" → spot
-  const lookup = {};
-  withGrid.forEach((s) => {
-    lookup[`${s.gridRow},${s.gridCol}`] = s;
-  });
-
-  const segments = [];
-
-  withGrid.forEach((s) => {
-    const { gridRow: r, gridCol: c } = s;
-    const { x, y } = s.location_coordinates;
-
-    // Check right neighbour (same row, next column)
-    const right = lookup[`${r},${c + 1}`];
-    if (right) {
-      const dx = right.location_coordinates.x - x;
-      if (dx > 1) {
-        segments.push({
-          cx: (x + right.location_coordinates.x) / 2,
-          cy: y,
-          w: dx * 0.85,
-          d: 1.2,
-          horizontal: false,
-        });
-      }
-    }
-
-    // Check bottom neighbour (next row, same column)
-    const below = lookup[`${r + 1},${c}`];
-    if (below) {
-      const dy = below.location_coordinates.y - y;
-      if (dy > 1) {
-        segments.push({
-          cx: x,
-          cy: (y + below.location_coordinates.y) / 2,
-          w: 1.2,
-          d: dy * 0.85,
-          horizontal: true,
-        });
-      }
-    }
-  });
-
-  return segments;
-}
-
 /* ── 3D scene — renders spots from multiple lots with per-issuer colours ── */
-function ParkingLotScene({ spotGroups }) {
+function ParkingLotScene({ spotGroups, roadsByLot }) {
   const allSpots = spotGroups.flatMap((g) =>
     g.spots.map((s) => ({ ...s, issuerColors: g.issuerColors }))
   );
@@ -159,12 +131,23 @@ function ParkingLotScene({ spotGroups }) {
   const spacing = 1.2;
   const spacing_row = 2;
 
-  const roadSegments = detectRoadSegments(parsed);
+  // Collect all road segments from DB for visible lots
+  const roadSegments = spotGroups.flatMap((g) =>
+    (roadsByLot[g.lot.lot_id] || []).map((r) => ({
+      cx: r.cx,
+      cy: r.cy,
+      w: r.w,
+      d: r.d,
+      horizontal: r.horizontal,
+      connections: r.connections || null,
+    }))
+  );
 
   return (
     <>
       <ambientLight intensity={0.6} />
       <directionalLight position={[10, 15, 10]} intensity={0.8} />
+      <directionalLight position={[-8, 10, -6]} intensity={0.4} />
       <Ground />
 
       {/* Roads */}
@@ -172,13 +155,14 @@ function ParkingLotScene({ spotGroups }) {
         <RoadPatch
           key={`road-${i}`}
           position={[
-            (seg.cx - cx) / 10 * scale,
+            (seg.cx - cx) * spacing,
             0,
-            (seg.cy - cy) / 10 * scale,
+            (seg.cy - cy) * spacing_row,
           ]}
-          scaleX={seg.w * scale * 0.1}
-          scaleZ={seg.d * scale * 0.1}
+          width={seg.connections ? seg.w * spacing * 0.67 : seg.horizontal ? seg.w * spacing : seg.w * spacing * 0.45}
+          depth={seg.connections ? seg.w * spacing_row * 0.67 : seg.horizontal ? seg.d * spacing_row * 0.45 : seg.d * spacing_row}
           horizontal={seg.horizontal}
+          connections={seg.connections}
         />
       ))}
 
@@ -211,6 +195,7 @@ export default function AvailabilityPage() {
   const [selectedMall, setSelectedMall] = useState("");
   const [selectedLotId, setSelectedLotId] = useState("");
   const [spotsByLot, setSpotsByLot] = useState({});
+  const [roadsByLot, setRoadsByLot] = useState({});
 
   /* Fetch all parking lots on mount */
   useEffect(() => {
@@ -308,6 +293,19 @@ export default function AvailabilityPage() {
       socket.off("slot:update");
       setSpotsByLot({});
     };
+  }, [mallLots]);
+
+  /* Fetch roads for each lot in the selected mall */
+  useEffect(() => {
+    if (!mallLots.length) return;
+    setRoadsByLot({});
+    mallLots.forEach((lot) => {
+      api(`/api/parking/lots/${lot.lot_id}/roads`)
+        .then((data) => {
+          if (data) setRoadsByLot((prev) => ({ ...prev, [lot.lot_id]: data }));
+        })
+        .catch(() => {});
+    });
   }, [mallLots]);
 
   /* Build spot groups with issuer colours — filtered to selected lot */
@@ -408,7 +406,7 @@ export default function AvailabilityPage() {
         </div>
 
         <Canvas camera={{ position: [0, 12, 14], fov: 50 }}>
-          <ParkingLotScene spotGroups={spotGroups} />
+          <ParkingLotScene spotGroups={spotGroups} roadsByLot={roadsByLot} />
         </Canvas>
       </div>
     </div>
