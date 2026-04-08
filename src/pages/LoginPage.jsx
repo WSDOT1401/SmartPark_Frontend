@@ -16,8 +16,9 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate("/");
+      const loggedIn = await login(email, password);
+      const stored = JSON.parse(localStorage.getItem("user"));
+      navigate(stored?.role === "ADMIN" ? "/admin" : "/");
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {

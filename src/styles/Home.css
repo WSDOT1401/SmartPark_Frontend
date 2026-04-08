@@ -68,12 +68,9 @@
   letter-spacing: 0.5px;
 }
 
-/* ── Two-column grid ── */
-.home-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  margin-bottom: 40px;
+/* ── Sections ── */
+.home-section {
+  margin-bottom: 36px;
 }
 
 .home-section h3 {
@@ -87,75 +84,174 @@
   margin-bottom: 16px;
 }
 
-/* ── Card stack ── */
-.cards-stack {
+/* ── Active Parking Sessions ── */
+.sessions-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.card-item {
+.session-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   background: #141414;
-  border-radius: 10px;
-  padding: 20px;
   border: 1px solid #1e1e1c;
+  border-radius: 10px;
+  padding: 18px 22px;
 }
 
-.card-top {
+.session-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 8px rgba(46, 204, 113, 0.5);
+  flex-shrink: 0;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(46, 204, 113, 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 14px rgba(46, 204, 113, 0.8); }
+}
+
+.session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
-.card-item .brand {
-  font-size: 0.7rem;
-  text-transform: uppercase;
+.session-plate {
+  color: #f0ece2;
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-family: monospace;
   letter-spacing: 1px;
-  color: #c9a84c;
+}
+
+.session-duration {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #2ecc71;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
-.family-badge {
-  font-size: 0.65rem;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(201, 168, 76, 0.08);
-  color: #8a8780;
-  letter-spacing: 0.3px;
-}
-
-.card-item .last_four {
-  color: #f0ece2;
-  font-size: 1.2rem;
-  margin-bottom: 4px;
-  font-family: monospace;
-  letter-spacing: 2px;
-}
-
-.card-item .label {
+.session-details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   color: #5a5850;
   font-size: 0.8rem;
+}
+
+.session-details span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ── Malls grid ── */
 .malls-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+/* ── Privileges list ── */
+.privileges-list {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-.mall-chip {
-  background: #111111;
+.privilege-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #141414;
   border: 1px solid #1e1e1c;
+  border-radius: 10px;
+  padding: 14px 20px;
+}
+
+.privilege-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
-  padding: 16px 20px;
+  background: rgba(201, 168, 76, 0.1);
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+.privilege-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.privilege-provider {
+  color: #f0ece2;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.privilege-tier {
+  color: #c9a84c;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mall-chip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #141414;
+  border: 1px solid #1e1e1c;
+  border-radius: 10px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.25s ease, transform 0.2s ease;
+}
+
+.mall-chip:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+  transform: translateY(-2px);
+}
+
+.mall-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(201, 168, 76, 0.08);
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+.mall-body {
+  min-width: 0;
 }
 
 .mall-chip .mall-name {
   color: #f0ece2;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .mall-chip .mall-address {
@@ -164,14 +260,11 @@
   margin-top: 2px;
 }
 
-.mall-chip .family-tag {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 0.65rem;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(201, 168, 76, 0.08);
-  color: #c9a84c;
+/* ── Empty state ── */
+.empty-state {
+  color: #5a5850;
+  font-size: 0.85rem;
+  padding: 16px 0;
 }
 
 /* ── Quick action cards ── */
@@ -223,7 +316,7 @@
     flex-direction: column;
   }
 
-  .home-grid {
+  .malls-grid {
     grid-template-columns: 1fr;
   }
 

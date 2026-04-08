@@ -26,9 +26,10 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
 
           {/* Protected routes — wrapped in shared Layout (navbar) */}
+          {/* User-only routes */}
           <Route
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="USER">
                 <Layout />
               </ProtectedRoute>
             }
@@ -40,6 +41,16 @@ export default function App() {
             <Route path="/edit/add-card" element={<AddCardPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* Admin-only routes */}
+          <Route
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/parking" element={<AdminParkingPage />} />
             <Route path="/admin/parking-creator" element={<AdminParkingCreatorPage />} />

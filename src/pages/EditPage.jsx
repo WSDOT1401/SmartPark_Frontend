@@ -12,7 +12,7 @@ export default function EditPage() {
       <p className="edit-subtitle">
         Select a card to view and edit linked vehicles.
       </p>
-
+      
       <div className="card-list">
         {(user.cards || []).map((card) => {
           const vehicleCount = (user.vehicles || []).filter(

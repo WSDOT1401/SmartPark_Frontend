@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Text, Html, useGLTF } from "@react-three/drei";
+import { Text, Html, useGLTF } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import * as THREE from "three";
 import { api, getToken } from "../services/api";
 import { connectSocket } from "../services/socket";
 import "../styles/Availability.css";
@@ -18,42 +20,184 @@ function getIssuerColors(index) {
   return ISSUER_PALETTE[index % ISSUER_PALETTE.length];
 }
 
-const YOUR_CAR_COLOR = "#2ecc71";
+const YOUR_CAR_COLOR = "#3b82f6";
+const OTHER_CAR_COLOR = "#2a2a2a";
+const STATUS_FREE = "#22c55e";
+const STATUS_OCCUPIED = "#ef4444";
+const LINE_YELLOW = "#facc15";
+
+/* ── Preload the car model ── */
+useGLTF.preload("/Cars.glb");
+
+/* ── 3D car placed inside a slot ── */
+function ParkedCar({ isYourCar }) {
+  const { scene } = useGLTF("/Cars.glb");
+  const cloned = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        child.material = child.material.clone();
+        child.material.color = new THREE.Color(isYourCar ? YOUR_CAR_COLOR : OTHER_CAR_COLOR);
+        child.material.metalness = isYourCar ? 0.6 : 0.4;
+        child.material.roughness = isYourCar ? 0.25 : 0.5;
+        if (isYourCar) {
+          child.material.emissive = new THREE.Color(YOUR_CAR_COLOR);
+          child.material.emissiveIntensity = 0.15;
+        }
+      }
+    });
+    return c;
+  }, [scene, isYourCar]);
+
+  /* Compute bounding box for auto-scaling */
+  const { scale: autoScale, yOffset } = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.z);
+    const s = 0.7 / maxDim; // fit within ~0.7 units (slot width is 0.9)
+    const yOff = -box.min.y * s; // lift so bottom sits on ground
+    return { scale: s, yOffset: yOff };
+  }, [cloned]);
+
+  return (
+    <primitive
+      object={cloned}
+      scale={[autoScale, autoScale, autoScale]}
+      position={[0, yOffset, 0.05]}
+      rotation={[0, Math.PI, 0]}
+    />
+  );
+}
 
 /* ── Single parking spot mesh ── */
 function ParkingSpot({ position, rotation, status, label, active, issuerColors, isYourCar, onClick }) {
-  const palette = issuerColors || ISSUER_PALETTE[0];
-  const color = !active
-    ? "#555"
+  const isFree = active && status !== "OCCUPIED";
+  const lightColor = !active
+    ? "#333"
     : isYourCar
     ? YOUR_CAR_COLOR
-    : status === "OCCUPIED"
-    ? palette.occupied
-    : palette.free;
+    : isFree
+    ? STATUS_FREE
+    : STATUS_OCCUPIED;
+  const lightIntensity = !active ? 0 : isYourCar ? 1.2 : isFree ? 0.6 : 0.8;
 
   return (
     <group
       position={position}
       rotation={[0, (rotation || 0) * Math.PI / 180, 0]}
       onClick={isYourCar ? (e) => { e.stopPropagation(); onClick?.(); } : undefined}
-      style={isYourCar ? { cursor: "pointer" } : undefined}
     >
-      <mesh position={[0, 0.05, 0]}>
-        <boxGeometry args={[0.8, 0.1, 1.6]} />
-        <meshStandardMaterial color={color} />
+      {/* ── Asphalt surface ── */}
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[0.9, 1.7]} />
+        <meshStandardMaterial color="#1c1c1c" roughness={0.95} metalness={0} />
       </mesh>
-      {/* Pulsing ring for your car */}
+
+      {/* ── Boundary lines (yellow) ── */}
+      {/* Left */}
+      <mesh position={[-0.43, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.035, 1.7]} />
+        <meshStandardMaterial color={LINE_YELLOW} emissive={LINE_YELLOW} emissiveIntensity={0.15} />
+      </mesh>
+      {/* Right */}
+      <mesh position={[0.43, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.035, 1.7]} />
+        <meshStandardMaterial color={LINE_YELLOW} emissive={LINE_YELLOW} emissiveIntensity={0.15} />
+      </mesh>
+      {/* Back (curb end, +Z) */}
+      <mesh position={[0, 0.012, 0.83]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.86, 0.035]} />
+        <meshStandardMaterial color={LINE_YELLOW} emissive={LINE_YELLOW} emissiveIntensity={0.15} />
+      </mesh>
+
+      {/* ── Wheel stoppers (curb end, +Z) ── */}
+      <mesh position={[-0.2, 0.04, 0.6]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, 0.07, 0.08]} />
+        <meshStandardMaterial color="#4a4a4a" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.2, 0.04, 0.6]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, 0.07, 0.08]} />
+        <meshStandardMaterial color="#4a4a4a" roughness={0.8} />
+      </mesh>
+      {/* Yellow stripe on stoppers */}
+      <mesh position={[-0.2, 0.076, 0.6]} castShadow>
+        <boxGeometry args={[0.18, 0.008, 0.082]} />
+        <meshStandardMaterial color={LINE_YELLOW} />
+      </mesh>
+      <mesh position={[0.2, 0.076, 0.6]} castShadow>
+        <boxGeometry args={[0.18, 0.008, 0.082]} />
+        <meshStandardMaterial color={LINE_YELLOW} />
+      </mesh>
+
+      {/* ── Status pole ── */}
+      <mesh position={[0.35, 0.3, 0.78]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.018, 0.022, 0.6, 8]} />
+        <meshStandardMaterial color="#3a3a3a" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Pole base */}
+      <mesh position={[0.35, 0.01, 0.78]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.05, 0.05, 0.02, 8]} />
+        <meshStandardMaterial color="#333" metalness={0.5} roughness={0.4} />
+      </mesh>
+
+      {/* ── Light indicator housing ── */}
+      <mesh position={[0.35, 0.62, 0.78]} castShadow>
+        <cylinderGeometry args={[0.045, 0.04, 0.06, 12]} />
+        <meshStandardMaterial color="#222" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* Light bulb */}
+      <mesh position={[0.35, 0.66, 0.78]}>
+        <sphereGeometry args={[0.05, 16, 16]} />
+        <meshStandardMaterial
+          color={lightColor}
+          emissive={lightColor}
+          emissiveIntensity={active ? 3 : 0.1}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* ── Point light for glow effect ── */}
+      {active && (
+        <pointLight
+          position={[0.35, 0.66, 0.78]}
+          color={lightColor}
+          intensity={lightIntensity}
+          distance={2.5}
+          decay={2}
+          castShadow
+          shadow-mapSize-width={128}
+          shadow-mapSize-height={128}
+        />
+      )}
+
+      {/* ── Parked car model (when occupied) ── */}
+      {active && status === "OCCUPIED" && (
+        <ParkedCar isYourCar={isYourCar} />
+      )}
+
+      {/* ── Your car pulsing ring ── */}
       {isYourCar && (
-        <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.5, 0.55, 32]} />
-          <meshBasicMaterial color={YOUR_CAR_COLOR} transparent opacity={0.6} />
+        <mesh position={[0, 0.018, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.38, 0.42, 32]} />
+          <meshStandardMaterial
+            color={YOUR_CAR_COLOR}
+            emissive={YOUR_CAR_COLOR}
+            emissiveIntensity={1.5}
+            transparent
+            opacity={0.7}
+            toneMapped={false}
+          />
         </mesh>
       )}
+
+      {/* ── Slot label (toward entrance, -Z) ── */}
       <Text
-        position={[0, 0.15, 0]}
+        position={[0, 0.018, -0.25]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.25}
-        color="#fff"
+        fontSize={0.18}
+        color="#666"
         anchorX="center"
         anchorY="middle"
       >
@@ -63,12 +207,24 @@ function ParkingSpot({ position, rotation, status, label, active, issuerColors, 
   );
 }
 
+const FOG_COLOR = "#181822";
+
+/* ── Scene environment: background, fog ── */
+function SceneEnvironment() {
+  return (
+    <>
+      <color attach="background" args={[FOG_COLOR]} />
+      <fog attach="fog" args={[FOG_COLOR, 12, 40]} />
+    </>
+  );
+}
+
 /* ── Ground plane ── */
 function Ground() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
-      <planeGeometry args={[30, 20]} />
-      <meshStandardMaterial color="#0f0f0f" />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+      <planeGeometry args={[50, 40]} />
+      <meshStandardMaterial color="#191920" roughness={0.92} metalness={0.02} />
     </mesh>
   );
 }
@@ -107,9 +263,9 @@ function RoadPatch({ position, width, depth, horizontal, connections }) {
 
   return (
     <group position={position}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]} receiveShadow>
         <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color="#2a2a2a" />
+        <meshStandardMaterial color="#222222" roughness={0.88} metalness={0.02} />
       </mesh>
       {lines.map((l, i) => (
         <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={l.pos}>
@@ -161,9 +317,29 @@ function ParkingLotScene({ spotGroups, roadsByLot, userSlotIds, onSpotClick }) {
 
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 15, 10]} intensity={0.8} />
-      <directionalLight position={[-8, 10, -6]} intensity={0.4} />
+      <SceneEnvironment />
+
+      {/* Hemisphere light for subtle ambient fill */}
+      <hemisphereLight args={["#2a2a3e", "#0a0a0f", 0.35]} />
+
+      {/* Main directional light with shadows */}
+      <directionalLight
+        position={[10, 20, 10]}
+        intensity={0.5}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-left={-18}
+        shadow-camera-right={18}
+        shadow-camera-top={18}
+        shadow-camera-bottom={-18}
+        shadow-camera-near={0.5}
+        shadow-camera-far={60}
+        shadow-bias={-0.0005}
+      />
+      {/* Opposite fill light */}
+      <directionalLight position={[-8, 10, -6]} intensity={0.12} />
+
       <Ground />
 
       {/* Roads */}
@@ -199,12 +375,7 @@ function ParkingLotScene({ spotGroups, roadsByLot, userSlotIds, onSpotClick }) {
           />
         );
       })}
-      <gridHelper args={[30, 30, "#333", "#222"]} />
-      <OrbitControls
-        maxPolarAngle={Math.PI / 2.2}
-        minDistance={5}
-        maxDistance={25}
-      />
+      <gridHelper args={[30, 30, "#222", "#181822"]} />
     </>
   );
 }
@@ -502,35 +673,42 @@ export default function AvailabilityPage() {
           </div>
         </div>
 
-        {/* Dynamic legend — one section per issuer/provider */}
+        {/* Legend — status indicator lights */}
         <div className="legend">
-          {Object.entries(issuerColorMap).map(([provider, colors]) => (
-            <div key={provider} className="legend-group">
-              <span className="legend-provider">{provider}</span>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: colors.free }} />
-                Free
-              </div>
-              <div className="legend-item">
-                <span
-                  className="legend-dot"
-                  style={{ background: colors.occupied }}
-                />
-                Occupied
-              </div>
+          <div className="legend-group">
+            <span className="legend-provider">Status</span>
+            <div className="legend-item">
+              <span className="legend-dot" style={{ background: STATUS_FREE, boxShadow: `0 0 6px ${STATUS_FREE}` }} />
+              Free
             </div>
-          ))}
-          {userSlotIds.size > 0 && (
-            <div className="legend-group">
+            <div className="legend-item">
+              <span className="legend-dot" style={{ background: STATUS_OCCUPIED, boxShadow: `0 0 6px ${STATUS_OCCUPIED}` }} />
+              Occupied
+            </div>
+            {userSlotIds.size > 0 && (
               <div className="legend-item">
-                <span className="legend-dot" style={{ background: YOUR_CAR_COLOR }} />
+                <span className="legend-dot" style={{ background: YOUR_CAR_COLOR, boxShadow: `0 0 6px ${YOUR_CAR_COLOR}` }} />
                 Your Car
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          {Object.entries(issuerColorMap).length > 1 &&
+            Object.entries(issuerColorMap).map(([provider, colors]) => (
+              <div key={provider} className="legend-group">
+                <span className="legend-provider">{provider}</span>
+                <div className="legend-item">
+                  <span className="legend-dot" style={{ background: colors.free }} />
+                  Lot
+                </div>
+              </div>
+            ))}
         </div>
 
-        <Canvas camera={{ position: [0, 12, 14], fov: 50 }}>
+        <Canvas
+          shadows
+          camera={{ position: [10, 12, 10], fov: 48, near: 0.1, far: 100 }}
+          gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}
+        >
           <ParkingLotScene
             spotGroups={spotGroups}
             roadsByLot={roadsByLot}
@@ -540,6 +718,14 @@ export default function AvailabilityPage() {
               if (session) setSelectedSession(session);
             }}
           />
+          <EffectComposer>
+            <Bloom
+              intensity={0.8}
+              luminanceThreshold={0.6}
+              luminanceSmoothing={0.4}
+              mipmapBlur
+            />
+          </EffectComposer>
         </Canvas>
       </div>
 
