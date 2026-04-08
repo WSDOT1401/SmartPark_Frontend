@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Text, useGLTF } from "@react-three/drei";
-import { api } from "../services/api";
+import { OrbitControls, Text, Html, useGLTF } from "@react-three/drei";
+import { api, getToken } from "../services/api";
 import { connectSocket } from "../services/socket";
 import "../styles/Availability.css";
 
@@ -18,21 +18,37 @@ function getIssuerColors(index) {
   return ISSUER_PALETTE[index % ISSUER_PALETTE.length];
 }
 
+const YOUR_CAR_COLOR = "#2ecc71";
+
 /* ── Single parking spot mesh ── */
-function ParkingSpot({ position, rotation, status, label, active, issuerColors }) {
+function ParkingSpot({ position, rotation, status, label, active, issuerColors, isYourCar, onClick }) {
   const palette = issuerColors || ISSUER_PALETTE[0];
   const color = !active
     ? "#555"
+    : isYourCar
+    ? YOUR_CAR_COLOR
     : status === "OCCUPIED"
     ? palette.occupied
     : palette.free;
 
   return (
-    <group position={position} rotation={[0, (rotation || 0) * Math.PI / 180, 0]}>
+    <group
+      position={position}
+      rotation={[0, (rotation || 0) * Math.PI / 180, 0]}
+      onClick={isYourCar ? (e) => { e.stopPropagation(); onClick?.(); } : undefined}
+      style={isYourCar ? { cursor: "pointer" } : undefined}
+    >
       <mesh position={[0, 0.05, 0]}>
         <boxGeometry args={[0.8, 0.1, 1.6]} />
         <meshStandardMaterial color={color} />
       </mesh>
+      {/* Pulsing ring for your car */}
+      {isYourCar && (
+        <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.5, 0.55, 32]} />
+          <meshBasicMaterial color={YOUR_CAR_COLOR} transparent opacity={0.6} />
+        </mesh>
+      )}
       <Text
         position={[0, 0.15, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -106,7 +122,7 @@ function RoadPatch({ position, width, depth, horizontal, connections }) {
 }
 
 /* ── 3D scene — renders spots from multiple lots with per-issuer colours ── */
-function ParkingLotScene({ spotGroups, roadsByLot }) {
+function ParkingLotScene({ spotGroups, roadsByLot, userSlotIds, onSpotClick }) {
   const allSpots = spotGroups.flatMap((g) =>
     g.spots.map((s) => ({ ...s, issuerColors: g.issuerColors }))
   );
@@ -168,6 +184,7 @@ function ParkingLotScene({ spotGroups, roadsByLot }) {
 
       {parsed.map((spot) => {
         const { x, y } = spot.location_coordinates;
+        const isYourCar = userSlotIds.has(spot.slot_id);
         return (
           <ParkingSpot
             key={`${spot.lot_id}-${spot.slot_id}`}
@@ -177,6 +194,8 @@ function ParkingLotScene({ spotGroups, roadsByLot }) {
             active={spot.is_active}
             // label={spot.slot_id}
             issuerColors={spot.issuerColors}
+            isYourCar={isYourCar}
+            onClick={() => onSpotClick?.(spot)}
           />
         );
       })}
@@ -190,6 +209,70 @@ function ParkingLotScene({ spotGroups, roadsByLot }) {
   );
 }
 
+/* ── Format elapsed duration ── */
+function formatDuration(entryTime) {
+  const ms = Date.now() - new Date(entryTime).getTime();
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+/* ── Parking detail modal ── */
+function ParkingDetailModal({ session, onClose }) {
+  if (!session) return null;
+
+  const entryTime = session.entry_time || session.created_at;
+  const duration = entryTime ? formatDuration(entryTime) : "—";
+  const fee = session.current_fee ?? session.fee ?? session.total_fee;
+
+  return (
+    <div className="parking-detail-backdrop" onClick={onClose}>
+      <div className="parking-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="pdm-close" onClick={onClose}>×</button>
+        <h3>Your Parking</h3>
+        <div className="pdm-row">
+          <span className="pdm-label">Slot</span>
+          <span className="pdm-value">{session.slot_id}</span>
+        </div>
+        {session.lot_name && (
+          <div className="pdm-row">
+            <span className="pdm-label">Lot</span>
+            <span className="pdm-value">{session.lot_name}</span>
+          </div>
+        )}
+        <div className="pdm-row">
+          <span className="pdm-label">Vehicle</span>
+          <span className="pdm-value">{session.registration || "—"}</span>
+        </div>
+        <div className="pdm-row">
+          <span className="pdm-label">Entry Time</span>
+          <span className="pdm-value">
+            {entryTime ? new Date(entryTime).toLocaleString() : "—"}
+          </span>
+        </div>
+        <div className="pdm-row">
+          <span className="pdm-label">Duration</span>
+          <span className="pdm-value pdm-highlight">{duration}</span>
+        </div>
+        {fee != null && (
+          <div className="pdm-row">
+            <span className="pdm-label">Current Fee</span>
+            <span className="pdm-value pdm-highlight">฿{Number(fee).toFixed(2)}</span>
+          </div>
+        )}
+        {session.rate_per_hour != null && (
+          <div className="pdm-row">
+            <span className="pdm-label">Rate</span>
+            <span className="pdm-value">฿{Number(session.rate_per_hour).toFixed(0)}/hr</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AvailabilityPage() {
   const [lots, setLots] = useState([]);
   const [selectedMall, setSelectedMall] = useState("");
@@ -197,10 +280,44 @@ export default function AvailabilityPage() {
   const [spotsByLot, setSpotsByLot] = useState({});
   const [roadsByLot, setRoadsByLot] = useState({});
 
+  /* User parking state */
+  const [userSessions, setUserSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+
   /* Fetch all parking lots on mount */
   useEffect(() => {
     api("/api/parking/lots").then((data) => setLots(data || []));
   }, []);
+
+  /* Fetch user's active parking sessions via their vehicles */
+  useEffect(() => {
+    if (!getToken()) return; // not logged in
+    api("/api/users/vehicles")
+      .then((vehicles) => {
+        if (!vehicles?.length) return;
+        const promises = vehicles.map((v) =>
+          api(`/api/parking/session?registration=${encodeURIComponent(v.registration)}&province=${encodeURIComponent(v.province)}`)
+            .then((session) => session ? { ...session, registration: v.registration, province: v.province } : null)
+            .catch(() => null)
+        );
+        return Promise.all(promises);
+      })
+      .then((results) => {
+        if (results) setUserSessions(results.filter(Boolean));
+      })
+      .catch(() => {});
+  }, []);
+
+  /* Set of slot_ids where the current user is parked */
+  const userSlotIds = useMemo(() => {
+    return new Set(userSessions.map((s) => s.slot_id).filter(Boolean));
+  }, [userSessions]);
+
+  /* Lookup session by slot_id */
+  const getSessionForSlot = useCallback(
+    (slotId) => userSessions.find((s) => s.slot_id === slotId) || null,
+    [userSessions]
+  );
 
   /* Extract a display name for the mall (handles nested object or flat string) */
   const getMallName = (lot) => {
@@ -403,12 +520,36 @@ export default function AvailabilityPage() {
               </div>
             </div>
           ))}
+          {userSlotIds.size > 0 && (
+            <div className="legend-group">
+              <div className="legend-item">
+                <span className="legend-dot" style={{ background: YOUR_CAR_COLOR }} />
+                Your Car
+              </div>
+            </div>
+          )}
         </div>
 
         <Canvas camera={{ position: [0, 12, 14], fov: 50 }}>
-          <ParkingLotScene spotGroups={spotGroups} roadsByLot={roadsByLot} />
+          <ParkingLotScene
+            spotGroups={spotGroups}
+            roadsByLot={roadsByLot}
+            userSlotIds={userSlotIds}
+            onSpotClick={(spot) => {
+              const session = getSessionForSlot(spot.slot_id);
+              if (session) setSelectedSession(session);
+            }}
+          />
         </Canvas>
       </div>
+
+      {/* Parking detail popup */}
+      {selectedSession && (
+        <ParkingDetailModal
+          session={selectedSession}
+          onClose={() => setSelectedSession(null)}
+        />
+      )}
     </div>
   );
 }
