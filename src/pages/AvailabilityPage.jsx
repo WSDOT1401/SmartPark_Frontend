@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Text, Html, useGLTF } from "@react-three/drei";
+import { Text, Html, useGLTF, OrbitControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { api, getToken } from "../services/api";
@@ -51,23 +51,27 @@ function ParkedCar({ isYourCar }) {
     return c;
   }, [scene, isYourCar]);
 
-  /* Compute bounding box for auto-scaling */
-  const { scale: autoScale, yOffset } = useMemo(() => {
+  /* Compute bounding box for auto-scaling and center offset */
+  const { scale: autoScale, yOffset, centerOffset } = useMemo(() => {
     const box = new THREE.Box3().setFromObject(cloned);
     const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.z);
     const s = 0.7 / maxDim; // fit within ~0.7 units (slot width is 0.9)
     const yOff = -box.min.y * s; // lift so bottom sits on ground
-    return { scale: s, yOffset: yOff };
+    // Offset to center the model at origin before rotation
+    const centerOff = new THREE.Vector3(-center.x, 0, -center.z);
+    return { scale: s, yOffset: yOff, centerOffset: centerOff };
   }, [cloned]);
 
   return (
-    <primitive
-      object={cloned}
-      scale={[autoScale, autoScale, autoScale]}
-      position={[0, yOffset, 0.05]}
-      rotation={[0, Math.PI, 0]}
-    />
+    <group position={[0, yOffset, 0.05]} rotation={[0, Math.PI / 2 + Math.PI, 0]}>
+      <primitive
+        object={cloned}
+        scale={[autoScale * 1.82, autoScale * 1.82, autoScale * 1.82]}
+        position={[centerOffset.x * autoScale * 1.82, 0, centerOffset.z * autoScale * 1.82]}
+      />
+    </group>
   );
 }
 
@@ -361,6 +365,9 @@ function ParkingLotScene({ spotGroups, roadsByLot, userSlotIds, onSpotClick }) {
       {parsed.map((spot) => {
         const { x, y } = spot.location_coordinates;
         const isYourCar = userSlotIds.has(spot.slot_id);
+        if (isYourCar) {
+          console.log(`🔵 Your car found at slot: ${spot.slot_id}`);
+        }
         return (
           <ParkingSpot
             key={`${spot.lot_id}-${spot.slot_id}`}
@@ -405,7 +412,7 @@ function ParkingDetailModal({ session, onClose }) {
         <h3>Your Parking</h3>
         <div className="pdm-row">
           <span className="pdm-label">Slot</span>
-          <span className="pdm-value">{session.slot_id}</span>
+          <span className="pdm-value">{session.slot_id || session.slot?.slot_id || "—"}</span>
         </div>
         {session.lot_name && (
           <div className="pdm-row">
@@ -465,28 +472,67 @@ export default function AvailabilityPage() {
     if (!getToken()) return; // not logged in
     api("/api/users/vehicles")
       .then((vehicles) => {
-        if (!vehicles?.length) return;
+        if (!vehicles?.length) {
+          console.log("❌ No vehicles found for user");
+          return;
+        }
+        console.log("🚗 Found vehicles:", vehicles.map(v => ({ registration: v.registration, province: v.province })));
         const promises = vehicles.map((v) =>
           api(`/api/parking/session?registration=${encodeURIComponent(v.registration)}&province=${encodeURIComponent(v.province)}`)
-            .then((session) => session ? { ...session, registration: v.registration, province: v.province } : null)
-            .catch(() => null)
+            .then((session) => {
+              if (session) {
+                console.log(`📍 Session for ${v.registration}:`, session);
+                return { ...session, registration: v.registration, province: v.province };
+              }
+              console.log(`⚠️ No session for ${v.registration}`);
+              return null;
+            })
+            .catch((err) => {
+              console.error(`Error fetching session for ${v.registration}:`, err);
+              return null;
+            })
         );
         return Promise.all(promises);
       })
       .then((results) => {
-        if (results) setUserSessions(results.filter(Boolean));
+        if (results) {
+          const filtered = results.filter(Boolean);
+          console.log("✅ User sessions loaded:", filtered);
+          filtered.forEach(s => {
+            console.log("   Session details:", {
+              session_id: s.session_id,
+              slot_id: s.slot_id,
+              slot: s.slot,
+              slot_id_from_slot: s.slot?.slot_id
+            });
+          });
+          setUserSessions(filtered);
+        }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Error fetching user sessions:", err);
+      });
   }, []);
 
   /* Set of slot_ids where the current user is parked */
   const userSlotIds = useMemo(() => {
-    return new Set(userSessions.map((s) => s.slot_id).filter(Boolean));
+    const slotIds = new Set(userSessions.map((s) => {
+      // Handle both flat and nested slot structure
+      const id = s.slot_id || s.slot?.slot_id;
+      if (id) console.log(`   Extracted slot_id: ${id} from session`, s);
+      return id;
+    }).filter(Boolean));
+    if (slotIds.size > 0) {
+      console.log("🎯 User parked slots:", Array.from(slotIds));
+    } else {
+      console.log("⚠️ No slots found in user sessions");
+    }
+    return slotIds;
   }, [userSessions]);
 
   /* Lookup session by slot_id */
   const getSessionForSlot = useCallback(
-    (slotId) => userSessions.find((s) => s.slot_id === slotId) || null,
+    (slotId) => userSessions.find((s) => (s.slot_id || s.slot?.slot_id) === slotId) || null,
     [userSessions]
   );
 
@@ -555,6 +601,7 @@ export default function AvailabilityPage() {
     ids.forEach((id) => socket.emit("join:lot", id));
 
     socket.on("dashboard:init", (slotArray) => {
+      console.log("📊 Dashboard init received with", slotArray?.length, "slots");
       const grouped = {};
       slotArray.forEach((s) => {
         if (!grouped[s.lot_id]) grouped[s.lot_id] = [];
@@ -564,18 +611,46 @@ export default function AvailabilityPage() {
     });
 
     socket.on("slot:update", (update) => {
+      console.log("🔄 Slot update received:", update);
       setSpotsByLot((prev) => {
         const arr = prev[update.lot_id] || [];
+        const slotExists = arr.some((s) => s.slot_id === update.slot_id);
+        
+        let updatedArr = arr.map((s) =>
+          s.slot_id === update.slot_id ? { ...s, ...update } : s
+        );
+
+        // If slot doesn't exist yet, add it (this handles race conditions)
+        if (!slotExists && update.slot_id) {
+          updatedArr = [...arr, { ...update }];
+        }
+
         return {
           ...prev,
-          [update.lot_id]: arr.map((s) =>
-            s.slot_id === update.slot_id ? { ...s, ...update } : s
-          ),
+          [update.lot_id]: updatedArr,
         };
       });
     });
 
+    /* Fallback polling: refresh slot data every 10 seconds to ensure sync */
+    const pollInterval = setInterval(() => {
+      ids.forEach((lotId) => {
+        api(`/api/parking/lots/${lotId}/slots`)
+          .then((slots) => {
+            if (slots?.length) {
+              console.log(`🔁 Polling refresh for lot ${lotId}:`, slots.length, "slots");
+              setSpotsByLot((prev) => ({
+                ...prev,
+                [lotId]: slots,
+              }));
+            }
+          })
+          .catch((err) => console.error(`Polling error for lot ${lotId}:`, err));
+      });
+    }, 10000);
+
     return () => {
+      clearInterval(pollInterval);
       ids.forEach((id) => socket.emit("leave:lot", id));
       socket.off("dashboard:init");
       socket.off("slot:update");
@@ -717,6 +792,13 @@ export default function AvailabilityPage() {
               const session = getSessionForSlot(spot.slot_id);
               if (session) setSelectedSession(session);
             }}
+          />
+          <OrbitControls
+            enableZoom={true}
+            enablePan={true}
+            enableRotate={false}
+            minDistance={5}
+            maxDistance={40}
           />
           <EffectComposer>
             <Bloom
